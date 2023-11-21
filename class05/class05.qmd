@@ -1,0 +1,85 @@
+---
+title: "Class 5 Data Visualization with ggplot2"
+author: "Barry (PID: 911)"
+format: pdf
+---
+
+## Using GGPLOT
+
+The ggplot2 package needs to be installed as it does not come with R "out of the box".
+
+We use the `install.packages()` function to do this.
+
+```{r}
+head(cars)
+```
+
+To use ggplot I need to load it up before I can call any of the functions in the package. I do this with the `library()` function.
+
+```{r}
+library(ggplot2)
+ggplot()
+```
+
+All ggplot figures have at least 3 things:
+- data (the stuff we want to plot)
+- aesthetic mapping (aes vales)
+- geoms
+
+```{r}
+ggplot(cars) +
+  aes(x=speed, y=dist) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+
+ggplot is not the only graphing system in R there are lots of others. There is even "base R" graphics.
+
+
+```{r}
+plot(cars)
+```
+
+
+# Expression dataset
+
+
+```{r}
+url <- "https://bioboot.github.io/bimm143_S20/class-material/up_down_expression.txt"
+genes <- read.delim(url)
+head(genes)
+```
+
+```{r}
+ggplot(genes) +
+  aes(x=Condition1, y=Condition2, color=State) +
+  geom_point()
+```
+
+
+```{r}
+sum(genes$State == "up")
+```
+
+```{r}
+head(genes$State)
+head(genes$State == "up")
+```
+
+```{r}
+#install.packages("dplyr")
+
+library(dplyr)
+```
+
+
+
+```{r}
+head(genes)
+```
+
+```{r}
+sum(genes$State == "up")
+```
+
+
