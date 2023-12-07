@@ -1,0 +1,420 @@
+---
+title: "Class 07: Machine Learning 1"
+author: "Barry (PID: 911)"
+format: pdf
+---
+
+# Clustering
+
+We will start today's lab with clustering methods, in particular so-called K-means. The main function for this in R is `kmeans()`.
+
+Let's try it on some made up data where we know what thwe answer should be.
+
+```{r}
+x <- rnorm(10000, mean=3)
+hist(x)
+```
+
+60 points
+```{r}
+tmp <- c(rnorm(30, mean=3), rnorm(30, -3) )
+x <- cbind(x=tmp, y=rev(tmp))
+head(x)
+```
+
+We can pass this to the base R `plot()` function for a quick.
+
+```{r}
+plot(x)
+```
+
+```{r}
+k <- kmeans(x, centers = 2, nstart=20)
+k
+```
+
+> Q1. How many points are in each cluster?
+
+```{r}
+k$size
+```
+
+> Q2. Cluster membership?
+
+```{r}
+k$cluster
+```
+
+
+> Q3. Cluster centers?
+
+```{r}
+k$centers
+```
+
+> Q4. Plot my clustering results
+
+```{r}
+plot(x, col=k$cluster, pch=16 )
+```
+
+
+> Q5. Cluster the data again with kmeans() into 4 groups and plot the results.
+
+```{r}
+k4 <- kmeans(x, centers = 4, nstart=20)
+plot(x, col=k4$cluster, pch=16)
+```
+
+K-means is very popular mostly because it is fast and relatively straightforward to run and understand. It has a big limitation in that you need to tell it how many groups (k, or centers) you want.
+
+
+
+# Hierarchical clustering
+
+The main function in base R is called `hclust()`. You have to pass it in a "distance matrix" not just your input data.
+
+You can generate a distance matrix with the `dist()` function.
+
+```{r}
+hc <- hclust( dist(x) )
+hc
+```
+
+```{r}
+plot(hc)
+```
+
+To find the clusters (cluster membership vector) from a `hclust()` result we can "cut" the tree at a certain height that we like. For this we use the `cutree()` function.
+
+```{r}
+plot(hc)
+abline(h=8, col="red")
+grps <- cutree(hc, h=8)
+```
+
+
+```{r}
+table(grps)
+```
+
+> Q6. Plot our hclust results.
+
+```{r}
+plot(x, col=grps, pch=16)
+```
+
+# Principal Component Analysis
+
+
+## PCA of UK food data
+
+Read data showing the consumption in grams (per person, per week) of 17 different types of food-stuff measured and averaged in the four countries of the United Kingdom.
+
+Let's see how PCA can help us but first we can try conventional analysis.
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+x
+```
+
+I need to fix that first column...
+
+```{r}
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+```
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url, row.names=1)
+```
+
+
+A pairs plot can be useful if we don't have too many dimensions...
+
+```{r}
+pairs(x, col=rainbow(17), pch=16, cex=2)
+
+```
+
+## Principal Component Analysis (PCA)
+
+PCA can help us make sense of these types of datasets. Let's see how it works.
+
+The main function in "base" R is called `prcomp()`. In this case we want to first take the transpose `t()` of our input `x` so the columns are the food types and the countries are the rows.
+
+```{r}
+head( t(x) )
+```
+
+```{r}
+pca <- prcomp( t(x) )
+summary(pca)
+```
+
+```{r}
+pca$x
+```
+
+```{r}
+plot( pca$x[,1], pca$x[,2], 
+      col=c("orange", "red", "blue", "darkgreen"), 
+      pch=16 )
+```
+The "loadings" tell us how much the origional variables (in our case the foods) contribute to the new variables i.e. the PCs
+
+```{r}
+head(pca$rotation)
+
+## Lets focus on PC1 as it accounts for > 90% of variance 
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,1], las=2 )
+
+```
+
+Stop at Q9 
+
+
+## ggplot
+
+```{r}
+library(tidyr)
+
+# Add the rownames back as a column
+y <- cbind(food=rownames(x),x)
+rownames(y) <- NULL
+head(y)
+```
+
+```{r}
+z <- pivot_longer(y, 
+                  cols = !food, 
+                  names_to = "country", 
+                  values_to = "count")
+```
+
+The first argument is the dataset to reshape, `y`
+
+`cols` describes which columns need to be reshaped. In this case, it’s every column apart from `food`
+
+`names_to` gives the name of the variable that will be created from the data stored in the column names, i.e. `country`.
+
+values_to gives the name of the variable that will be created from the data stored in the cell value, i.e. count.
+
+
+
+
+```{r}
+library(ggplot2)
+
+ggplot(z) +
+  aes(food, count, col=country) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1))
+```
+
+```{r}
+ggplot(z) +
+  aes(food, count) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1))
+
+```
+
+```{r}
+ggplot(z) +
+  aes(food, count, fill=country) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1))
+
+```
+
+
+
+```{r}
+ggplot(z) +
+  aes(food, count, fill=country) +
+  geom_col(position='dodge') +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1))
+
+```
+
+```{r}
+ggplot(z) +
+  aes(country, count, fill=food) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1))
+
+```
+
+```{r}
+ggplot(z) +
+  aes(food, count, fill=country) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1)) +
+  facet_wrap(vars(country), ncol=1)
+
+
+```
+
+## Using ggplot for these figures
+
+We could use **ggplot** to make somewhat better figures than all of the above "base" R `plots()` and `barplots()`. Even though they may look better they won't really help us understand major trends to any better degree (we will do that with PCA in the next section).
+
+
+```{r}
+library(tidyr)
+library(ggplot2)
+
+
+# try with row.names
+#m <- read.csv(url, row.names = 1)
+
+q <- tibble::rownames_to_column(x, "Food")
+
+# Put in longer format
+foods <- pivot_longer(q, 
+                  cols = !Food, 
+                  names_to = "Country", 
+                  values_to = "Count")
+
+head(foods)
+
+```
+
+
+Now we can do some plotting
+
+```{r}
+ggplot(foods) +
+  aes(Count, Food, col=Country) +
+  geom_point()
+```
+```{r}
+ggplot(foods) +
+  aes(Count, Food, fill=Country) +
+  geom_col()
+
+```
+```{r}
+ggplot(foods) +
+  aes(Count, Food, fill=Country) +
+  geom_col(position='dodge') +
+  theme_bw() +
+  scale_x_continuous(expand=c(0,0))
+
+```
+
+
+```{r}
+ggplot(foods) +
+  aes(Count, Food, col=Country) +
+  geom_point() +
+  geom_segment(aes(x=0,
+                   xend=Count,
+                   y=Food, 
+                   yend=Food), color="gray") +
+  geom_point()
+```
+
+```{r}
+ggplot(foods) +
+  aes(Count, Food) +
+  geom_boxplot() +
+  geom_point(aes(col=Country))
+```
+
+```{r}
+pairs(x, col=rainbow(17), pch=16)
+```
+
+```{r}
+library(GGally)
+
+ggpairs(x) 
+```
+
+
+
+
+## Optional: Using ggplot for these figures
+
+We could use the **ggplot2** package to make somewhat better figures than all of the above "base" R `plots()` and `barplots()`. Recall that ggplot works with data.frames and unfortunately most of the output of these older base R functions like `prcomp()` are lists of vectors and matrices. 
+
+So first we will need to take whatever it is we want to plot and convert it to a data.frame with the `as.data.frame()` function. Then to make our plotting life easier we will also add the food labels as a column (called "Food") to this data frame with the `rownames_to_column()` function from the **tibble** package (you might need to install this):
+
+
+
+
+```{r}
+df <- as.data.frame(pca$x)
+df_lab <- tibble::rownames_to_column(df, "Country")
+
+# Our first basic plot
+ggplot(df_lab) + 
+  aes(PC1, PC2, col=Country) + 
+  geom_point()
+```
+
+And then we can get carried away and make this look much nicer:
+
+```{r}
+ggplot(df_lab) + 
+  aes(PC1, PC2, col=Country, label=Country) + 
+  geom_hline(yintercept = 0, col="gray") +
+  geom_vline(xintercept = 0, col="gray") +
+  geom_point(show.legend = FALSE) +
+  geom_label(hjust=1, nudge_x = -10, show.legend = FALSE) +
+  expand_limits(x = c(-300,500)) +
+  xlab("PC1 (67.4%)") +
+  ylab("PC2 (28%)") +
+  theme_bw()
+```
+
+
+Let's do the same for our loadings/PC contributions figures. This data is stored in the `pca$rotation` object that we convert to a data frame, add the useful row names as a new column and then plot and customize with additional ggplot layers. Which do you prefer, base graphics or ggplot?
+
+
+```{r}
+ld <- as.data.frame(pca$rotation)
+ld_lab <- tibble::rownames_to_column(ld, "Food")
+
+ggplot(ld_lab) +
+  aes(PC1, Food) +
+  geom_col() 
+```
+We can now add some additional features to the plot, such as reordering the y axis by the PC1 loadings and selecting a rather ugly color scale (to match our country colors) and our prefered theme layer. 
+
+```{r}
+ggplot(ld_lab) +
+  aes(PC1, reorder(Food, PC1), bg=PC1) +
+  geom_col() + 
+  xlab("PC1 Loadings/Contributions") +
+  ylab("Food Group") +
+  scale_fill_gradient2(low="purple", mid="gray", high="darkgreen", guide=NULL) +
+  theme_bw()
+```
+
+
+
+
+
+
+
+
+
